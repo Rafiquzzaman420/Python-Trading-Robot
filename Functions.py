@@ -20,8 +20,14 @@ def price_data_frame(symbol, time_frame, total_bars):
     # data_frame['time'] = pd.to_datetime(data_frame['time'], unit='s')
     return data_frame
 
+def time_zone_sync(total_bars, data_frame):
+  time_list = []
+  for info in reversed(range(total_bars)):
+    time_list.append(data_frame.at[info, 'time'] + (6*60*60))
+  return time_list
 
-def stochastic_indicator(dataframe, k, d, slow):
+
+def stochastic_indicator(dataframe, k = 21, d = 3, slow = 7):
     close = dataframe['close']
     low = dataframe['low'].rolling(k).min()
     high = dataframe['high'].rolling(k).max()
@@ -35,7 +41,7 @@ def stochastic_indicator(dataframe, k, d, slow):
     return dataframe['%K'], dataframe['%D']
 
 
-def exponential_moving_average(dataframe, fast=21, slow=200):
+def exponential_moving_average(dataframe, fast=21, slow=100):
     dataframe['Fast_EMA'] = dataframe['close'].ewm(span=fast, adjust=False).mean()
     dataframe['Slow_EMA'] = dataframe['close'].ewm(span=slow, adjust=False).mean()
     return dataframe['Fast_EMA'], dataframe['Slow_EMA']
@@ -48,6 +54,10 @@ def ema_crossover_detection(dataframe):
     for info in reversed(range(799, 999)):
         fast_ema.append(dataframe.at[info, 'Fast_EMA'])
         slow_ema.append(dataframe.at[info, 'Slow_EMA'])
+    if fast_ema[1] > slow_ema[1] and fast_ema[0] < slow_ema[0]:
+        return 'EMA_UPTREND'
+    if fast_ema[1] < slow_ema[1] and fast_ema[0] > slow_ema[0]:
+        return 'EMA_DOWNTREND'
 
 
 def stochastic_crossover_detection(dataframe):
@@ -57,14 +67,10 @@ def stochastic_crossover_detection(dataframe):
     for info in reversed(range(799, 999)):
         k_line.append(dataframe.at[info, '%K'])
         d_line.append(dataframe.at[info, '%D'])
-    if k_line[1] > d_line[1] and k_line[0] < d_line[0]:
-        return 'Crossover Detected. BUY'
-    if k_line[1] < d_line[1] and k_line[0] > d_line[0]:
-        return 'Crossover Detected. SELL'
-    if k_line[0] < d_line[0] and k_line[1] <= 25 or d_line[1] <= 25:
-        return 'BUY'
-    if k_line[0] > d_line[0] and k_line[1] >= 75 or d_line[1] >= 75:
-        return 'SELL'
+    if k_line[1] > d_line[1] and k_line[0] < d_line[0] and k_line[0] >= 75:
+        return 'STOCH_DOWNTREND'
+    if k_line[1] < d_line[1] and k_line[0] > d_line[0] and k_line[0] <= 25:
+        return 'STOCH_UPTREND'
 
 def is_support(df,i):  
   cond1 = df['low'][i] < df['low'][i-1]   
@@ -110,7 +116,8 @@ def plotter(levels, df):
       max(df['time']), colors='blue', linestyle='-')
   fig.show()
 
-def horizontal_line_values(hline_values, hline_output_values):
+def horizontal_line_values(hline_values):
+  hline_output_values = []
 # Return values of levels in list format
   for i in range(len(hline_values)):
     value = hline_values[i] # [(13, 1.00002)]
@@ -118,11 +125,12 @@ def horizontal_line_values(hline_values, hline_output_values):
     hline_output_values.append(line_values)
   return hline_output_values
 
-def horizontal_line_position(total_bars, hline_output, data_frame, differnece, hline_position):
-    current_position = data_frame.at[total_bars - 1, 'close']
+def horizontal_line_position(total_bars, hline_output, data_frame, hline_position):
+    bar_position = data_frame.at[total_bars - 1, 'close']
+    differnece = []
     above, below = 1, -1
     for i in range(len(hline_output)):
-        diff = abs(current_position - hline_output[i][1])
+        diff = abs(bar_position - hline_output[i][1])
         differnece.append(diff)
         hline_position.append([diff, hline_output[i][1]])
 
@@ -130,7 +138,7 @@ def horizontal_line_position(total_bars, hline_output, data_frame, differnece, h
     x = [x for x in hline_position if differnece in x][0]
     position = hline_position.index(x)
     hline_position = hline_position[position][1]
-    if current_position - hline_position > 0:
-        return hline_position, above
+    if bar_position - hline_position > 0:
+        return hline_position, above, bar_position
     else:
-        return hline_position, below
+        return hline_position, below, bar_position
