@@ -3,11 +3,36 @@ import pandas as pd
 from mplfinance.original_flavor import candlestick_ohlc
 import numpy as np
 import matplotlib.pyplot as plt
+import time
+from pygame import mixer
 
 def initialization_check():
     if not meta.initialize():
         print('Initialization failed.\nError code : ', meta.last_error())
         quit()
+
+def play_sound(order):
+  mixer.init()
+  buy_sound = 'buy.mp3'
+  sell_sound = 'sell.mp3'
+  if order == 'buy':
+    mixer.music.load(buy_sound)
+  if order == 'sell':
+    mixer.music.load(sell_sound)
+  mixer.music.play()
+  while mixer.music.get_busy():  # wait for music to finish playing
+    time.sleep(1)
+
+def trix_indicator(period, total_bars, dataframe):
+    ema_3 = []
+    dataframe['EMA_1'] = dataframe['close'].ewm(span=period, adjust=False).mean()
+    dataframe['EMA_2'] = dataframe['EMA_1'].ewm(span=period, adjust=False).mean()
+    dataframe['EMA_3'] = dataframe['EMA_2'].ewm(span=period, adjust=False).mean()
+    # TRIX = ( EMA3 [today] - EMA3 [yesterday] ) / EMA3 [yesterday]
+    for i in reversed(range(total_bars)):
+        ema_3.append(dataframe.at[i, 'EMA_3'])
+    trix = (ema_3[0] - ema_3[1]) / ema_3[1]
+    return trix
 
 def price_data_frame(symbol, time_frame, total_bars):
     initialization_check()
@@ -27,7 +52,7 @@ def time_zone_sync(total_bars, data_frame):
   return time_list
 
 
-def stochastic_indicator(dataframe, k = 21, d = 3, slow = 7):
+def stochastic_indicator(dataframe, k = 21, d = 5, slow = 7):
     close = dataframe['close']
     low = dataframe['low'].rolling(k).min()
     high = dataframe['high'].rolling(k).max()
@@ -47,11 +72,13 @@ def exponential_moving_average(dataframe, fast=21, slow=100):
     return dataframe['Fast_EMA'], dataframe['Slow_EMA']
 
 
-def ema_crossover_detection(dataframe):
+def ema_crossover_detection(dataframe, total_bars, bar_no):
     exponential_moving_average(dataframe)
     fast_ema = []
     slow_ema = []
-    for info in reversed(range(799, 999)):
+    start_pos = total_bars - 1
+    stop_pos = total_bars - 1 - bar_no
+    for info in reversed(range(stop_pos, start_pos)):
         fast_ema.append(dataframe.at[info, 'Fast_EMA'])
         slow_ema.append(dataframe.at[info, 'Slow_EMA'])
     if fast_ema[1] > slow_ema[1] and fast_ema[0] < slow_ema[0]:
@@ -60,17 +87,25 @@ def ema_crossover_detection(dataframe):
         return 'EMA_DOWNTREND'
 
 
-def stochastic_crossover_detection(dataframe):
-    stochastic_indicator(dataframe, 21, 3, 7)
+def stochastic_crossover_detection(dataframe, k, d, slow, total_bars, bar_no):
+    stochastic_indicator(dataframe, k, d, slow)
     k_line = []  # Fast Line
     d_line = []  # Slow Line
-    for info in reversed(range(799, 999)):
+    time_now = []
+    close_pos = []
+    start_pos = total_bars - 1
+    stop_pos = total_bars - 1 - bar_no
+    for info in reversed(range(stop_pos, start_pos)):
         k_line.append(dataframe.at[info, '%K'])
         d_line.append(dataframe.at[info, '%D'])
-    if k_line[1] > d_line[1] and k_line[0] < d_line[0] and k_line[0] >= 75:
-        return 'STOCH_DOWNTREND'
-    if k_line[1] < d_line[1] and k_line[0] > d_line[0] and k_line[0] <= 25:
-        return 'STOCH_UPTREND'
+        time_now.append(dataframe.at[info, 'time'])
+        close_pos.append(dataframe.at[info, 'close'])
+
+    for i in range(total_bars):
+      if k_line[i + 1] > d_line[i + 1] and k_line[i] < d_line[i]:
+          return 'SELL', time_now[i], close_pos[i]
+      if k_line[i + 1] < d_line[i + 1] and k_line[i] > d_line[i]:
+          return 'BUY', time_now[i], close_pos[i]
 
 def is_support(df,i):  
   cond1 = df['low'][i] < df['low'][i-1]   
