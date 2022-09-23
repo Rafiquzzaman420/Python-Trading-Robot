@@ -22,11 +22,19 @@ while True:
     if wpr_signal[0][0] == 'buy' and stoch_signal[0][0] == 'buy' and time_difference<=12:
         print('BUY   : {0}'.format(time_converter(stoch_signal[0][1])))
         if time_difference<=2:
-            play_sound('buy')
+            if stoch_signal[1][0] == 'buy':
+                print("Market is currently in 'DOWN-TREND'")
+                play_sound('down_trend')
+            else:
+                play_sound('buy')
     if wpr_signal[0][0] == 'sell' and stoch_signal[0][0] == 'sell' and time_difference<=12:
         print('SELL  : {0}'.format(time_converter(stoch_signal[0][1])))
         if time_difference<=2:
-            play_sound('sell')
+            if stoch_signal[1][0] == 'sell':
+                print("Market is currently in 'UP-TREND'")
+                play_sound('up_trend')
+            else:
+                play_sound('sell')
 
     print('=======================================')
     print("William's Percentage      : ",wpr_signal[0][0])

@@ -14,31 +14,6 @@ def initialization_check():
         print('Initialization failed.\nError code : ', meta.last_error())
         quit()
 
-def buy_sell_signal(dataframe, period, total_bars):
-  times = [19, 20, 21, 22, 23]
-  if time_detector(dataframe, total_bars) not in times:
-    stochastic_indicator(dataframe, 21, 5, 7)
-    k_line = []  # Fast Line
-    d_line = []  # Slow Line
-    time_now = []
-    close_pos = []
-    for info in reversed(range(0,total_bars - 2)):
-        k_line.append(dataframe.at[info, '%K'])
-        d_line.append(dataframe.at[info, '%D'])
-        time_now.append(dataframe.at[info, 'time'])
-        close_pos.append(dataframe.at[info, 'close'])
-    for i in range(total_bars-2):
-      if k_line[i + 2] < d_line[i + 2] and k_line[i+1] > d_line[i+1] and \
-        (d_line[i+1] <= 25 or k_line[i+1] <= 25):
-        if trix(period, dataframe)[0] > trix(period, dataframe)[1] > trix(period, dataframe)[2] and \
-          trix(period, dataframe)[0] > 0 and trix(period, dataframe)[2] < trix(period, dataframe)[1] < 0:
-          return 'BUY'
-      if k_line[i + 2] > d_line[i + 2] and k_line[i+1] < d_line[i+1] and \
-        (d_line[i+1] >= 75 or k_line[i+1] <= 75):
-        if trix(period, dataframe)[0] < trix(period, dataframe)[1] < trix(period, dataframe)[2] and \
-          trix(period, dataframe)[0] < 0 and trix(period, dataframe)[2] > trix(period, dataframe)[1] > 0:
-          return 'SELL'
-
 def time_detector(dataframe, total_bars):
     std_time = 1661968800 + 6*60*60
     current_time = []
@@ -59,20 +34,19 @@ def play_sound(order):
   mixer.init()
   buy_sound = 'buy.mp3'
   sell_sound = 'sell.mp3'
+  up_trend_sound = 'up_trend.mp3'
+  down_trend_sound = 'down_trend.mp3'
   if order == 'buy':
     mixer.music.load(buy_sound)
   if order == 'sell':
     mixer.music.load(sell_sound)
+  if order == 'up_trend':
+    mixer.music.load(up_trend_sound)
+  if order == 'down_trend':
+    mixer.music.load(down_trend_sound)
   mixer.music.play()
   while mixer.music.get_busy():  # wait for music to finish playing
     time.sleep(1)
-
-def trix(period, dataframe):
-    dataframe['EMA_1'] = dataframe['close'].ewm(span=period, adjust=False).mean()
-    dataframe['EMA_2'] = dataframe['EMA_1'].ewm(span=period, adjust=False).mean()
-    dataframe['EMA_3'] = dataframe['EMA_2'].ewm(span=period, adjust=False).mean()
-    # TRIX = ( EMA3 [today] - EMA3 [yesterday] ) / EMA3 [yesterday]
-    return dataframe['EMA_3']
 
 def time_converter(unix_time):
   normal_time = datetime.utcfromtimestamp(unix_time).strftime('%Y-%m-%d %H:%M:%S')
