@@ -1,15 +1,59 @@
 import MetaTrader5 as meta
+from math import floor
 import pandas as pd
 from mplfinance.original_flavor import candlestick_ohlc
 import numpy as np
 import matplotlib.pyplot as plt
 import time
 from pygame import mixer
+from ta.momentum import williams_r
+from datetime import datetime
 
 def initialization_check():
     if not meta.initialize():
         print('Initialization failed.\nError code : ', meta.last_error())
         quit()
+
+def buy_sell_signal(dataframe, period, total_bars):
+  times = [19, 20, 21, 22, 23]
+  if time_detector(dataframe, total_bars) not in times:
+    stochastic_indicator(dataframe, 21, 5, 7)
+    k_line = []  # Fast Line
+    d_line = []  # Slow Line
+    time_now = []
+    close_pos = []
+    for info in reversed(range(0,total_bars - 2)):
+        k_line.append(dataframe.at[info, '%K'])
+        d_line.append(dataframe.at[info, '%D'])
+        time_now.append(dataframe.at[info, 'time'])
+        close_pos.append(dataframe.at[info, 'close'])
+    for i in range(total_bars-2):
+      if k_line[i + 2] < d_line[i + 2] and k_line[i+1] > d_line[i+1] and \
+        (d_line[i+1] <= 25 or k_line[i+1] <= 25):
+        if trix(period, dataframe)[0] > trix(period, dataframe)[1] > trix(period, dataframe)[2] and \
+          trix(period, dataframe)[0] > 0 and trix(period, dataframe)[2] < trix(period, dataframe)[1] < 0:
+          return 'BUY'
+      if k_line[i + 2] > d_line[i + 2] and k_line[i+1] < d_line[i+1] and \
+        (d_line[i+1] >= 75 or k_line[i+1] <= 75):
+        if trix(period, dataframe)[0] < trix(period, dataframe)[1] < trix(period, dataframe)[2] and \
+          trix(period, dataframe)[0] < 0 and trix(period, dataframe)[2] > trix(period, dataframe)[1] > 0:
+          return 'SELL'
+
+def time_detector(dataframe, total_bars):
+    std_time = 1661968800 + 6*60*60
+    current_time = []
+    for i in reversed(range(total_bars)):
+      dataframe_time = dataframe.at[i, 'time']
+      current_time.append(dataframe_time + 6*60*60)
+
+    difference = (current_time[1]- std_time)
+    if difference > 86400:
+        alpha = floor(difference / 86400)
+        difference = floor((difference - (86400 * alpha)) / 3600)
+        return difference
+    if difference < 86400:
+      difference = floor(difference / 3600)
+      return difference
 
 def play_sound(order):
   mixer.init()
@@ -23,16 +67,55 @@ def play_sound(order):
   while mixer.music.get_busy():  # wait for music to finish playing
     time.sleep(1)
 
-def trix_indicator(period, total_bars, dataframe):
-    ema_3 = []
+def trix(period, dataframe):
     dataframe['EMA_1'] = dataframe['close'].ewm(span=period, adjust=False).mean()
     dataframe['EMA_2'] = dataframe['EMA_1'].ewm(span=period, adjust=False).mean()
     dataframe['EMA_3'] = dataframe['EMA_2'].ewm(span=period, adjust=False).mean()
     # TRIX = ( EMA3 [today] - EMA3 [yesterday] ) / EMA3 [yesterday]
-    for i in reversed(range(total_bars)):
-        ema_3.append(dataframe.at[i, 'EMA_3'])
-    trix = (ema_3[0] - ema_3[1]) / ema_3[1]
-    return trix
+    return dataframe['EMA_3']
+
+def time_converter(unix_time):
+  normal_time = datetime.utcfromtimestamp(unix_time).strftime('%Y-%m-%d %H:%M:%S')
+  return normal_time
+
+def williams_r_crossover(dataframe, total_bars):
+  period = 14
+  williams_r_list = []
+  signal = []
+  high = dataframe['high']
+  low = dataframe['low']
+  close = dataframe['close']
+  time_values = []
+  dataframe['wpr'] = williams_r(high, low, close, period)
+  for i in reversed(range(total_bars)):
+    williams_r_list.append(dataframe.at[i, 'wpr'])
+    time_values.append(dataframe.at[i, 'time'])
+
+  for i in range(len(williams_r_list)-2):
+    if williams_r_list[i+1] >= -10:
+      signal.append(['sell', time_values[i+1]])
+    if williams_r_list[i+1] <= -90:
+      signal.append(['buy', time_values[i+1]])
+
+  return signal
+
+def stochastic_crossover(dataframe, total_bars):
+  stochastic_indicator(dataframe)
+  signal = []
+  time_values = []
+  k_values, d_values = ([] for i in range(2))
+  for i in reversed(range(total_bars)):
+    k_values.append(dataframe.at[i, '%K'])
+    d_values.append(dataframe.at[i, '%D'])
+    time_values.append(dataframe.at[i, 'time'])
+  for i in range(len(k_values)-2):
+    if k_values[i+2] >= d_values[i+1] and k_values[i+1] <= d_values[i+1] and k_values[i+1] >= 70:
+      signal.append(['sell', time_values[i+1]])
+    if k_values[i+2] <= d_values[i+1] and k_values[i+1] >= d_values[i+1] and k_values[i+1] <= 30:
+      signal.append(['buy', time_values[i+1]])
+
+  return signal
+
 
 def price_data_frame(symbol, time_frame, total_bars):
     initialization_check()
@@ -52,7 +135,10 @@ def time_zone_sync(total_bars, data_frame):
   return time_list
 
 
-def stochastic_indicator(dataframe, k = 21, d = 5, slow = 7):
+def stochastic_indicator(dataframe):
+    k = 14
+    d = 3
+    slow = 10
     close = dataframe['close']
     low = dataframe['low'].rolling(k).min()
     high = dataframe['high'].rolling(k).max()
@@ -70,42 +156,6 @@ def exponential_moving_average(dataframe, fast=21, slow=100):
     dataframe['Fast_EMA'] = dataframe['close'].ewm(span=fast, adjust=False).mean()
     dataframe['Slow_EMA'] = dataframe['close'].ewm(span=slow, adjust=False).mean()
     return dataframe['Fast_EMA'], dataframe['Slow_EMA']
-
-
-def ema_crossover_detection(dataframe, total_bars, bar_no):
-    exponential_moving_average(dataframe)
-    fast_ema = []
-    slow_ema = []
-    start_pos = total_bars - 1
-    stop_pos = total_bars - 1 - bar_no
-    for info in reversed(range(stop_pos, start_pos)):
-        fast_ema.append(dataframe.at[info, 'Fast_EMA'])
-        slow_ema.append(dataframe.at[info, 'Slow_EMA'])
-    if fast_ema[1] > slow_ema[1] and fast_ema[0] < slow_ema[0]:
-        return 'EMA_UPTREND'
-    if fast_ema[1] < slow_ema[1] and fast_ema[0] > slow_ema[0]:
-        return 'EMA_DOWNTREND'
-
-
-def stochastic_crossover_detection(dataframe, k, d, slow, total_bars, bar_no):
-    stochastic_indicator(dataframe, k, d, slow)
-    k_line = []  # Fast Line
-    d_line = []  # Slow Line
-    time_now = []
-    close_pos = []
-    start_pos = total_bars - 1
-    stop_pos = total_bars - 1 - bar_no
-    for info in reversed(range(stop_pos, start_pos)):
-        k_line.append(dataframe.at[info, '%K'])
-        d_line.append(dataframe.at[info, '%D'])
-        time_now.append(dataframe.at[info, 'time'])
-        close_pos.append(dataframe.at[info, 'close'])
-
-    for i in range(total_bars):
-      if k_line[i + 1] > d_line[i + 1] and k_line[i] < d_line[i]:
-          return 'SELL', time_now[i], close_pos[i]
-      if k_line[i + 1] < d_line[i + 1] and k_line[i] > d_line[i]:
-          return 'BUY', time_now[i], close_pos[i]
 
 def is_support(df,i):  
   cond1 = df['low'][i] < df['low'][i-1]   

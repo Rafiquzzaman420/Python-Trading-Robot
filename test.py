@@ -1,64 +1,79 @@
-from Functions import stochastic_indicator, \
-                exponential_moving_average, \
-                initialization_check, \
-                price_data_frame, \
-                stochastic_crossover_detection
+from contextlib import closing
 import MetaTrader5 as meta
+from datetime import datetime
+from Functions import buy_sell_signal, exponential_moving_average, initialization_check, price_data_frame, stochastic_indicator, trix
 
 total_bars = 10000
+
 initialization_check()
-dataframe = price_data_frame('EURUSDm', meta.TIMEFRAME_M1, total_bars)
-stochastic_indicator(dataframe, 21, 3, 7)
+dataframe = price_data_frame('EURUSD', meta.TIMEFRAME_M1, total_bars)
+close_position = []
+time_list = []
+period = 5
+buy_info = []
+sell_info = []
+
+trix(period, dataframe)
+stochastic_indicator(dataframe, 21, 5, 7)
 exponential_moving_average(dataframe, 21, 200)
-k_line = []  # Fast Line
-d_line = []  # Slow Line
 time_now = []
 close_pos = []
-sell_time = []
-buy_time = []
+k_value = []
+d_value = []
+ema_trix = []
+trix_list = []
 fast_ema = []
-slow_ema = []
-start_pos = total_bars - 1
-stop_pos = total_bars - 1 - 1000
-for info in reversed(range(stop_pos, start_pos)):
-    k_line.append(dataframe.at[info, '%K'])
-    d_line.append(dataframe.at[info, '%D'])
+for info in reversed(range(0,total_bars)):
+    k_value.append(dataframe.at[info, '%K'])
+    d_value.append(dataframe.at[info, '%D'])
     time_now.append(dataframe.at[info, 'time'])
-    close_pos.append([dataframe.at[info, 'close'], info])
-    fast_ema.append([dataframe.at[info, 'Fast_EMA']])
-    slow_ema.append([dataframe.at[info, 'Slow_EMA']])
+    close_pos.append(dataframe.at[info, 'close'])
+    ema_trix.append(dataframe.at[info, 'EMA_3'])
+    fast_ema.append(dataframe.at[info, 'Fast_EMA'])
 
-for i in range(799):
-    if fast_ema[i] < slow_ema[i] and \
-        k_line[i + 1] > d_line[i + 1] and k_line[i] < d_line[i]:
-        sell_time.append([close_pos[i][0], close_pos[i][1]])
-        # print('SELL', close_pos[i])
-    if fast_ema[i] > slow_ema[i] and \
-        k_line[i + 1] < d_line[i + 1] and k_line[i] > d_line[i]:
-        buy_time.append([close_pos[i][0], close_pos[i][1]])
-        # print('BUY', close_pos[i])
+for i in range(total_bars - 3):
+    trix_list.append((ema_trix[i +1] - ema_trix[i + 2])/ema_trix[i +2])
 
-def success_function(pos_type, time_list, data_frame):
+for i in range(total_bars - 4):
+    # if k_value[i + 2] < d_value[i + 2] and k_value[i + 1] > d_value[i + 1]\
+    #     and d_value[i + 1] <= 30 and fast_ema[i+1] < close_pos[i+1]:
+        if trix_list[i+1] <= 0 and trix_list[i] >= 0:
+            buy_info.append([time_now[i+1], close_pos[i+1], i+1, 1])
+            # print('Buy  : ', datetime.utcfromtimestamp(time_now[i]).strftime('%Y-%m-%d %H:%M:%S'))
+    # if k_value[i + 2] > d_value[i + 2] and k_value[i + 1] < d_value[i + 1]\
+    #     and d_value[i + 1] >= 70 and fast_ema[i+1] > close_pos[i+1]:
+        if trix_list[i+1] >= 0 and trix_list[i] <= 0:
+            sell_info.append([time_now[i+1], close_pos[i+1], i+1, -1])
+            # print('Sell : ', datetime.utcfromtimestamp(time_now[i]).strftime('%Y-%m-%d %H:%M:%S'))
+
+# print(buy_info)
+# print(sell_info[0])
+# print(dataframe.at[(total_bars - sell_info[0][2]+4), 'close'])
+def validator(buy_sell_list, dataframe, total_bars):
+    last_close = []
+    for i in range(len(buy_sell_list)-1):
+        fifth_close = dataframe.at[(total_bars - buy_sell_list[i][2]) + 5 , 'close']
+        current_close = buy_sell_list[i][1]
+        last_close.append([fifth_close, current_close, buy_sell_list[i][3]])
+    return last_close
+
+def success(last_close):
     success = 0
     failure = 0
-    for i in range(len(time_list) - 1): # 199
-        closing_position = time_list[i][0] # 1.04546
-        stick_number = time_list[i][1] - 8 # 986
-        closing_pos = data_frame.at[stick_number, 'close']
-
-        if pos_type == 'buy':
-            if closing_pos - closing_position > 0:
+    for i in range(len(last_close) - 1):
+        if last_close[i][2] == 1:
+            if (last_close[i][0] - last_close[i][1]) > 0:
                 success += 1
-            if closing_pos - closing_position < 0:
+            if last_close[i][0] - last_close[i][1] < 0:
                 failure += 1
-
-        if pos_type == 'sell':
-            if closing_position - closing_pos > 0:
+        if last_close[i][2] == -1:
+            if (last_close[i][1] - last_close[i][0]) > 0:
                 success += 1
-            if closing_position - closing_pos < 0:
+            if last_close[i][1] - last_close[i][0] < 0:
                 failure += 1
-            
     return success, failure
+            
+print(success(validator(buy_info, dataframe, total_bars)))
+print(success(validator(sell_info, dataframe, total_bars)))
 
-print(success_function('buy', buy_time, dataframe))
-print(success_function('sell', sell_time, dataframe))
+
