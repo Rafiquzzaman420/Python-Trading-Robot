@@ -23,12 +23,12 @@ while True:
         if stoch_signal[0][0] == 'buy' and great_stoch_signal[0][0] == 'buy' and primary_time_difference <= 20:
             print('BUY   : {0}'.format(time_converter(stoch_signal[0][1])))
             if secondary_time_difference <= 5:
-                speaker('Buy', 5)
+                speaker('Buy', 10)
     if wpr_signal[0][0] == 'sell' and stoch_signal[0][0] == 'sell' and secondary_time_difference<=12:
         if stoch_signal[0][0] == 'sell'  and great_stoch_signal[0][0] == 'sell' and primary_time_difference <= 20:
             print('SELL  : {0}'.format(time_converter(stoch_signal[0][1])))
             if secondary_time_difference <= 5:
-                speaker('Sell', 5)
+                speaker('Sell', 10)
 
     print('=======================================')
     print("William's Percentage      : ",wpr_signal[0][0])
