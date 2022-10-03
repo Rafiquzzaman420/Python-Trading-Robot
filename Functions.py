@@ -175,7 +175,7 @@ def stochastic_indicator(dataframe):
   
 def great_stochastic_indicator(dataframe):
     k = 200
-    d = 20
+    d = 30
     slow = 5
     close = dataframe['close']
     low = dataframe['low'].rolling(k).min()

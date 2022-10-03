@@ -1,14 +1,14 @@
 
 import MetaTrader5 as meta
 from time import sleep
-from Functions import great_stochastic_crossover, great_stochastic_indicator, price_data_frame, speaker,\
+from Functions import great_stochastic_crossover, price_data_frame, speaker,\
                     stochastic_crossover, stochastic_indicator,\
                     exponential_moving_average, time_converter,\
                     williams_r_crossover
 
 while True:
     total_bars = 1000 # Use larger values for great stochastic indicator
-    symbol = 'EURUSDm'
+    symbol = 'EURUSD'
     df = price_data_frame(symbol, meta.TIMEFRAME_M1, total_bars)
     stochastic_indicator(df)
     exponential_moving_average(df)
@@ -34,7 +34,8 @@ while True:
     print("William's Percentage      : ",wpr_signal[0][0])
     print("Stochastic                : ",stoch_signal[0][0])
     print('Great Stochastic          : ', great_stoch_signal[0][0])
-    print('Signal difference         : ',secondary_time_difference,'minutes')
+    print('Normal Signal difference  : ',secondary_time_difference,'minutes')
+    print('Great Signal difference   : ',primary_time_difference,'minutes')
     print('=======================================')
     sleep(30)
     
