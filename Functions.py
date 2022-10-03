@@ -100,16 +100,16 @@ def rsi_crossover(dataframe, bars):
   rsi_list = []
   time_values = []
   signal = []
-  dataframe['rsi'] = rsi(dataframe['close'])
+  dataframe['rsi'] = rsi(dataframe['close'], 20)
   for i in reversed(range(bars)):
     rsi_list.append(dataframe.at[i, 'rsi'])
     time_values.append(dataframe.at[i, 'time'])
-  
+  rsi_list = [x for x in rsi_list if str(x) != 'nan']
   for i in range(len(rsi_list) - 2):
     if floor(rsi_list[i+2]) <= 35 and floor(rsi_list[i+1]) >= 35:
-      signal.append('buy', time_values[i+1])
+      signal.append(['buy', time_values[i+1]])
     if ceil(rsi_list[i+2]) >= 65 and ceil(rsi_list[i+1]) <= 65:
-      signal.append('sell', time_values[i+1])
+      signal.append(['sell', time_values[i+1]])
   return signal
 
 def price_data_frame(symbol, time_frame, total_bars):
