@@ -62,23 +62,39 @@ def williams_r_crossover(dataframe, total_bars):
 
   return signal
 
-def adx_crossover(dataframe, bars):
-  adx_list = []
-  time_values = []
+def great_stochastic_crossover(dataframe, total_bars):
+  great_stochastic_indicator(dataframe)
   signal = []
-  dataframe['adx'] = adx(dataframe['high'], dataframe['low'], dataframe['close'])
-  dataframe['adx_pos'] = adx_pos(dataframe['high'], dataframe['low'], dataframe['close'])
-  dataframe['adx_neg'] = adx_neg(dataframe['high'], dataframe['low'], dataframe['close'])
-  for i in reversed(range(bars)):
-    adx_list.append([dataframe.at[i, 'adx'], dataframe.at[i, 'adx_pos'], dataframe.at[i, 'adx_neg']])
+  time_values = []
+  k_values, d_values = ([] for i in range(2))
+  for i in reversed(range(total_bars)):
+    k_values.append(dataframe.at[i, 'k_great'])
+    d_values.append(dataframe.at[i, 'd_great'])
     time_values.append(dataframe.at[i, 'time'])
-  # TODO : Need to work on the logic here!
-  for i in range(len(adx_list) - 1):
-    if adx_list[i+1][0] >= 25 and adx_list[i+1][1] >= adx_list[i+1][2]:
-      signal.append('TREND_UP', time_values[i+1])
+  for i in range(len(k_values)-2):
+    if k_values[i+2] >= d_values[i+2] and k_values[i+1] <= d_values[i+1] and k_values[i+1] >= 70:
+      signal.append(['sell', time_values[i+1]])
+    if k_values[i+2] <= d_values[i+2] and k_values[i+1] >= d_values[i+1] and k_values[i+1] <= 30:
+      signal.append(['buy', time_values[i+1]])
 
-    if adx_list[i+1][0] >= 25 and adx_list[i+1][2] >= adx_list[i+1][1]:
-      signal.append('TREND_DOWN', time_values[i+1])  
+  return signal
+
+def stochastic_crossover(dataframe, total_bars):
+  stochastic_indicator(dataframe)
+  signal = []
+  time_values = []
+  k_values, d_values = ([] for i in range(2))
+  for i in reversed(range(total_bars)):
+    k_values.append(dataframe.at[i, '%K'])
+    d_values.append(dataframe.at[i, '%D'])
+    time_values.append(dataframe.at[i, 'time'])
+  for i in range(len(k_values)-2):
+    if k_values[i+2] >= d_values[i+2] and k_values[i+1] <= d_values[i+1] and k_values[i+1] >= 75:
+      signal.append(['sell', time_values[i+1]])
+    if k_values[i+2] <= d_values[i+2] and k_values[i+1] >= d_values[i+1] and k_values[i+1] <= 25:
+      signal.append(['buy', time_values[i+1]])
+
+  return signal
 
 def rsi_crossover(dataframe, bars):
   rsi_list = []
@@ -95,41 +111,6 @@ def rsi_crossover(dataframe, bars):
     if ceil(rsi_list[i+2]) >= 65 and ceil(rsi_list[i+1]) <= 65:
       signal.append('sell', time_values[i+1])
   return signal
-
-def stochastic_crossover(dataframe, total_bars):
-  stochastic_indicator(dataframe)
-  signal = []
-  time_values = []
-  k_values, d_values = ([] for i in range(2))
-  for i in reversed(range(total_bars)):
-    k_values.append(dataframe.at[i, '%K'])
-    d_values.append(dataframe.at[i, '%D'])
-    time_values.append(dataframe.at[i, 'time'])
-  for i in range(len(k_values)-2):
-    if k_values[i+2] >= d_values[i+1] and k_values[i+1] <= d_values[i+1] and k_values[i+1] >= 75:
-      signal.append(['sell', time_values[i+1]])
-    if k_values[i+2] <= d_values[i+1] and k_values[i+1] >= d_values[i+1] and k_values[i+1] <= 25:
-      signal.append(['buy', time_values[i+1]])
-
-  return signal
-
-def great_stochastic_crossover(dataframe, total_bars):
-  great_stochastic_indicator(dataframe)
-  signal = []
-  time_values = []
-  k_values, d_values = ([] for i in range(2))
-  for i in reversed(range(total_bars)):
-    k_values.append(dataframe.at[i, 'k_great'])
-    d_values.append(dataframe.at[i, 'd_great'])
-    time_values.append(dataframe.at[i, 'time'])
-  for i in range(len(k_values)-2):
-    if k_values[i+2] >= d_values[i+1] and k_values[i+1] <= d_values[i+1] and k_values[i+1] >= 75:
-      signal.append(['sell', time_values[i+1]])
-    if k_values[i+2] <= d_values[i+1] and k_values[i+1] >= d_values[i+1] and k_values[i+1] <= 25:
-      signal.append(['buy', time_values[i+1]])
-
-  return signal
-
 
 def price_data_frame(symbol, time_frame, total_bars):
     initialization_check()

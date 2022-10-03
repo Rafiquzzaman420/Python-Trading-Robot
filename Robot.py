@@ -10,8 +10,6 @@ while True:
     total_bars = 1000 # Use larger values for great stochastic indicator
     symbol = 'EURUSD'
     df = price_data_frame(symbol, meta.TIMEFRAME_M1, total_bars)
-    stochastic_indicator(df)
-    exponential_moving_average(df)
 
     wpr_signal = williams_r_crossover(df, total_bars)
     stoch_signal = stochastic_crossover(df, total_bars)
