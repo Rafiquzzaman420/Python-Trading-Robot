@@ -91,32 +91,15 @@ def great_stochastic_crossover(dataframe, bars):
     d_values.append(dataframe.at[i, 'd_great'])
     time_values.append(dataframe.at[i, 'time'])
   for i in range(len(k_values)-2):
-    if k_values[i+2] >= d_values[i+2] and k_values[i+1] <= d_values[i+1] and k_values[i+1] >= 70:
+    if k_values[i+2] >= d_values[i+2] and k_values[i+1] <= d_values[i+1] and k_values[i+1] >= 79:
       signal.append(['sell', time_values[i]])
-    if k_values[i+2] <= d_values[i+2] and k_values[i+1] >= d_values[i+1] and k_values[i+1] <= 30:
-      signal.append(['buy', time_values[i]])
-
-  return signal
-
-def filter_stochastic_crossover(dataframe, bars):
-  filter_stochastic_indicator(dataframe)
-  signal = []
-  time_values = []
-  k_values, d_values = ([] for i in range(2))
-  for i in reversed(range(bars)):
-    k_values.append(dataframe.at[i, 'filter_k'])
-    d_values.append(dataframe.at[i, 'filter_d'])
-    time_values.append(dataframe.at[i, 'time'])
-  for i in range(len(k_values)-2):
-    if k_values[i+2] >= d_values[i+2] and k_values[i+1] <= d_values[i+1] and k_values[i+1] >= 70:
-      signal.append(['sell', time_values[i]])
-    if k_values[i+2] <= d_values[i+2] and k_values[i+1] >= d_values[i+1] and k_values[i+1] <= 30:
+    if k_values[i+2] <= d_values[i+2] and k_values[i+1] >= d_values[i+1] and k_values[i+1] <= 21:
       signal.append(['buy', time_values[i]])
 
   return signal
 
 def stochastic_crossover(dataframe, bars):
-  stochastic_indicator(dataframe, 30, 52, 5)
+  stochastic_indicator(dataframe, 8, 3, 8)
   signal = []
   time_values = []
   k_values, d_values = ([] for i in range(2))
@@ -218,15 +201,6 @@ def stochastic_indicator(dataframe, k = 8, d = 3, slow = 5):
     dataframe['%K'] = dataframe['%K_Fast'].rolling(slow).mean()
     dataframe['%D'] = dataframe['%K'].rolling(d).mean()
     return dataframe['%K'], dataframe['%D']
-  
-def filter_stochastic_indicator(dataframe, k = 30, d = 14, slow = 5):
-    close = dataframe['close']
-    low = dataframe['low'].rolling(k).min()
-    high = dataframe['high'].rolling(k).max()
-    dataframe['filter_k_fast'] = (close - low) * 100 / (high - low)
-    dataframe['filter_k'] = dataframe['filter_k_fast'].rolling(slow).mean()
-    dataframe['filter_d'] = dataframe['filter_k'].rolling(d).mean()
-    return dataframe['filter_k'], dataframe['filter_d']
 
 def great_stochastic_indicator(dataframe):
     k = 50
