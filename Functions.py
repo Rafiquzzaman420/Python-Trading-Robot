@@ -38,27 +38,7 @@ def time_detector(dataframe, bars):
 
 def time_converter(unix_time):
   normal_time = datetime.utcfromtimestamp(unix_time).strftime('%Y-%m-%d %H:%M:%S')
-  return normal_time
-
-def trix_crossover(dataframe, bars):
-  dataframe['trix_fast'] = trix(dataframe['close'], 5)
-  dataframe['trix_slow'] = trix(dataframe['close'], 8)
-  trix_fast, trix_slow, trix_time, signal = ([] for i in range(4))
-  for i in reversed(range(bars)):
-      trix_fast.append(dataframe.at[i, 'trix_fast'])
-      trix_slow.append(dataframe.at[i, 'trix_slow'])
-      trix_time.append(dataframe.at[i, 'time'])
-
-  for i in range(len(trix_fast) - 2):
-    if trix_fast[i+2] > trix_slow[i+2] and trix_fast[i+1] < trix_slow[i+1] and \
-      (trix_fast[i+1] > 0 or trix_fast[i+2] > 0):
-      signal.append(['sell', trix_time[i]])
-    if trix_fast[i+2] < trix_slow[i+2] and trix_fast[i+1] > trix_slow[i+1] and \
-      (trix_fast[i+1] < 0 or trix_fast[i+2] < 0):
-      signal.append(['buy', trix_time[i]])
-    
-  return signal
-    
+  return normal_time  
 
 def williams_r_crossover(dataframe, bars):
   period = 14
@@ -227,10 +207,12 @@ def array_moving_average(period, array):
   moving_averages_list = moving_averages.tolist()
   # Remove null entries from the list
   final_list = moving_averages_list[period - 1:]
+  for i in range(period - 1):
+    final_list.insert(i, 0)
 
   return final_list
 
-def exponential_moving_average(dataframe, fast=21, slow=100):
+def exponential_moving_average(dataframe, fast=100, slow=200):
     dataframe['Fast_EMA'] = dataframe['close'].ewm(span=fast, adjust=False).mean()
     dataframe['Slow_EMA'] = dataframe['close'].ewm(span=slow, adjust=False).mean()
     return dataframe['Fast_EMA'], dataframe['Slow_EMA']

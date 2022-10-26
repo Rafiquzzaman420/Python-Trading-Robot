@@ -1,22 +1,25 @@
-from Functions import great_stochastic_crossover, price_data_frame, time_converter, stochastic_crossover
+from matplotlib import pyplot as plt
+from Functions import array_moving_average, exponential_moving_average, price_data_frame, speaker, stochastic_crossover
 import MetaTrader5 as meta
+from ta.momentum import rsi
 import numpy as np
 
-bars = 1440
-dataframe = price_data_frame('EURUSDm', meta.TIMEFRAME_M1, bars)
-stoch_cross = stochastic_crossover(dataframe, bars)
-great_stoch_cross = great_stochastic_crossover(dataframe, bars)
-great = np.array(great_stoch_cross)
-great_size = np.shape(great)
-small = np.array(stoch_cross)
-small_size = np.shape(small)
+bars = 1000
+dataframe = price_data_frame('GBPUSDm', meta.TIMEFRAME_M1, bars)
+dataframe['rsi'] = rsi(dataframe['close'], 14)
+rsi_list, fast_ma, slow_ma, current_time = ([] for i in range(4))
+exponential_moving_average(dataframe)
+stoch_list = stochastic_crossover(dataframe, bars)
+for i in (range(bars)):
+    fast_ma.append(dataframe.at[i, 'Fast_EMA'])
+    slow_ma.append(dataframe.at[i, 'Slow_EMA'])
+    # Reverse current_time when in use
+    current_time.append(dataframe.at[i, 'time'])
 
-for g in range(great_size[0]):
-    for s in range(small_size[0]):
-        time_difference = abs(great_stoch_cross[g][1] - stoch_cross[s][1]) / 60
-        if great_stoch_cross[g][0] == 'buy' and stoch_cross[s][0] == 'buy' and \
-            time_difference <= 15:
-            print('BUY  : ', time_converter(great_stoch_cross[g][1]))
-        if great_stoch_cross[g][0] == 'sell' and stoch_cross[s][0] == 'sell' and \
-            time_difference <= 15:
-            print('SELL : ', time_converter(great_stoch_cross[g][1]))
+current_time.reverse()
+time_difference = int(abs(current_time[0] - stoch_list[0][1]) / 60)
+
+if fast_ma[0] >= slow_ma[0] and stoch_list[0][0] == 'buy' and time_difference <= 3:
+    speaker('UP', 10)
+if fast_ma[0] <= slow_ma[0] and stoch_list[0][0] == 'sell' and time_difference <= 3:
+    speaker('DOWN', 10)

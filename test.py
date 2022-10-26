@@ -2,8 +2,8 @@ from Functions import great_stochastic_indicator, price_data_frame, stochastic_i
 import MetaTrader5 as meta
 import numpy as np
 
-bars = 1440
-dataframe = price_data_frame('EURUSDm', meta.TIMEFRAME_M1, bars)
+bars = 300
+dataframe = price_data_frame('EURUSD', meta.TIMEFRAME_M1, bars)
 small = stochastic_indicator(dataframe, 8, 3, 8)
 big = great_stochastic_indicator(dataframe)
 k_values, d_values, gk_values, gd_values, time = ([] for i in range(5))
@@ -16,8 +16,8 @@ for i in reversed(range(bars)):
 
 for i in range(bars -2):
     if k_values[i+2] < d_values[i+2] and k_values[i+1] > d_values[i+1] \
-        and k_values[i+1] <= 25 and gk_values[i+1] < 30 and gd_values[i+1] < 35:
-        print('BUY : ',time_converter(time[i]))
+        and k_values[i+1] <= 25:
+        print('BUY  : ',time_converter(time[i]))
     if k_values[i+2] > d_values[i+2] and k_values[i+1] < d_values[i+1] \
-        and k_values[i+1] >= 75 and gk_values[i+1] > 70 and gd_values[i+1] > 65:
+        and k_values[i+1] >= 75:
         print('SELL : ',time_converter(time[i]))
