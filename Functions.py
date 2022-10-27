@@ -79,7 +79,7 @@ def great_stochastic_crossover(dataframe, bars):
   return signal
 
 def stochastic_crossover(dataframe, bars):
-  stochastic_indicator(dataframe, 8, 3, 8)
+  stochastic_indicator(dataframe, 8, 3, 5)
   signal = []
   time_values = []
   k_values, d_values = ([] for i in range(2))

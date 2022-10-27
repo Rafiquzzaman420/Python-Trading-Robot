@@ -21,22 +21,22 @@ while True:
 
     if  very_fast_ma[0] > fast_ma[0] > slow_ma[0] and stoch_list[0][0] == 'buy' and time_difference <= 2:
         print('==================================')
-        print('BUY         : ', time_converter(stoch_list[0][1]))
+        print('BUY   : ', time_converter(stoch_list[0][1]))
         print('==================================')
         speaker('UP', 10)
     if  very_fast_ma[0] < fast_ma[0] and fast_ma[0] > slow_ma[0] and stoch_list[0][0] == 'buy' and time_difference <= 2:
         print('==================================')
-        print('Short Buy   : ', time_converter(stoch_list[0][1]))
+        print('Buy   : ', time_converter(stoch_list[0][1]))
         print('==================================')
         speaker('Short up', 5)
     if very_fast_ma[0] < fast_ma[0] < slow_ma[0] and stoch_list[0][0] == 'sell' and time_difference <= 2:
         print('==================================')
-        print('SELL        : ', time_converter(stoch_list[0][1]))
+        print('SELL  : ', time_converter(stoch_list[0][1]))
         print('==================================')
         speaker('DOWN', 10)
     if very_fast_ma[0] > fast_ma[0] and fast_ma[0] < slow_ma[0] and stoch_list[0][0] == 'sell' and time_difference <= 2:
         print('==================================')
-        print('Short Sell  : ', time_converter(stoch_list[0][1]))
+        print('Sell  : ', time_converter(stoch_list[0][1]))
         print('==================================')
         speaker('Short down', 5)
         
