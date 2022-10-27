@@ -212,7 +212,8 @@ def array_moving_average(period, array):
 
   return final_list
 
-def exponential_moving_average(dataframe, fast=100, slow=200):
+def exponential_moving_average(dataframe, vfast = 50, fast=100, slow=200):
+    dataframe['Vfast_EMA'] = dataframe['close'].ewm(span=vfast, adjust=False).mean()
     dataframe['Fast_EMA'] = dataframe['close'].ewm(span=fast, adjust=False).mean()
     dataframe['Slow_EMA'] = dataframe['close'].ewm(span=slow, adjust=False).mean()
     return dataframe['Fast_EMA'], dataframe['Slow_EMA']
