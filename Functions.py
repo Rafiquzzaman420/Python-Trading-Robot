@@ -40,26 +40,33 @@ def time_converter(unix_time):
   normal_time = datetime.utcfromtimestamp(unix_time).strftime('%Y-%m-%d %H:%M:%S')
   return normal_time  
 
-def williams_r_crossover(dataframe, bars):
-  period = 14
-  williams_r_list = []
-  signal = []
-  high = dataframe['high']
-  low = dataframe['low']
-  close = dataframe['close']
-  time_values = []
-  dataframe['wpr'] = williams_r(high, low, close, period)
-  for i in reversed(range(bars)):
-    williams_r_list.append(dataframe.at[i, 'wpr'])
-    time_values.append(dataframe.at[i, 'time'])
+def DEMA(dataframe):
+  dataframe['DEMA_1'] = dataframe['close'].ewm(span=50, adjust=False).mean()
+  dataframe['DEMA_2'] = dataframe['DEMA_1'].rolling(50).mean()
+  dema, dema1, dema2 = ([] for i in range(3))
+  for i in range(len(dataframe.index)):
+    dema1.append(dataframe.at[i, 'DEMA_1'])
+    dema2.append(dataframe.at[i, 'DEMA_2'])
 
-  for i in range(len(williams_r_list)-2):
-    if williams_r_list[i+1] >= -11:
-      signal.append(['sell', time_values[i]])
-    if williams_r_list[i+1] <= -89:
-      signal.append(['buy', time_values[i]])
+  for i in range(len(dema1)):
+    dema.append((2 * dema1[i]) - dema2[i])
+  
+  return dema
 
-  return signal
+def TEMA(dataframe):
+  dataframe['TEMA_1'] = dataframe['close'].ewm(span=100, adjust=False).mean()
+  dataframe['TEMA_2'] = dataframe['TEMA_1'].rolling(100).mean()
+  dataframe['TEMA_3'] = dataframe['TEMA_2'].rolling(100).mean()
+  tema, tema1, tema2, tema3 = ([] for i in range(4))
+  for i in range(len(dataframe.index)):
+    tema1.append(dataframe.at[i, 'TEMA_1'])
+    tema2.append(dataframe.at[i, 'TEMA_2'])
+    tema3.append(dataframe.at[i, 'TEMA_3'])
+  
+  for i in range(len(tema1)):
+    tema.append((3 * tema1[i]) - (3 * tema2[i]) + tema3[i])
+
+  return tema
 
 def great_stochastic_crossover(dataframe, bars):
   great_stochastic_indicator(dataframe)

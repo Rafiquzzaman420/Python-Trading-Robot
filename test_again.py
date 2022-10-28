@@ -7,8 +7,7 @@ from ta.momentum import rsi
 while True:
     bars = 1000
     dataframe = price_data_frame('GBPUSDm', meta.TIMEFRAME_M1, bars)
-    dataframe['rsi'] = rsi(dataframe['close'], 14)
-    very_fast_ma, fast_ma, slow_ma, current_time = ([] for i in range(5))
+    very_fast_ma, fast_ma, slow_ma, current_time = ([] for i in range(4))
     exponential_moving_average(dataframe)
     stoch_list = stochastic_crossover(dataframe, bars)
     for i in reversed(range(bars)):
