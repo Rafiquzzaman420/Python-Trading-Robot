@@ -1,19 +1,22 @@
 from matplotlib import pyplot as plt
-from Functions import DEMA, TEMA, exponential_moving_average, price_data_frame
+from Functions import price_data_frame, stochastic_crossover, RSI_Divergence
 import MetaTrader5 as meta
 import numpy as np
+from pandas_ta import tema, dema, ema, rsi
 
-
-bars = 1440
+bars = 500
 dataframe = price_data_frame('GBPUSDm', meta.TIMEFRAME_M1, bars)
-tema = TEMA(dataframe)
-dema = DEMA(dataframe)
-exponential_moving_average(dataframe)
-ema = []
-for i in range(bars):
-    ema.append(dataframe.at[i, 'Slow_EMA'])
+open = dataframe['open']
+close = dataframe['close']
+high = dataframe['high']
+low = dataframe['low']
+# TEMA = tema(close, 200).tolist()
+# DEMA = dema(close, 50).tolist()
+# EMA = ema(close, 200).tolist()
+peaks = RSI_Divergence(close)
+print(peaks)
 
-plt.plot(tema, color='dodgerblue')
-plt.plot(dema, color='green')
-plt.plot(ema, color='red')
-plt.show()
+# TEMA.reverse()
+# DEMA.reverse()
+# EMA.reverse()
+# print(TEMA)

@@ -4,8 +4,8 @@ import pandas as pd
 from mplfinance.original_flavor import candlestick_ohlc
 import numpy as np
 import matplotlib.pyplot as plt
-from ta.momentum import williams_r,rsi
-from ta.trend import trix
+from pandas_ta import rsi
+from ta.trend import trix as tr
 from datetime import datetime
 import win32com.client
 import numpy as np
@@ -40,33 +40,32 @@ def time_converter(unix_time):
   normal_time = datetime.utcfromtimestamp(unix_time).strftime('%Y-%m-%d %H:%M:%S')
   return normal_time  
 
-def DEMA(dataframe):
-  dataframe['DEMA_1'] = dataframe['close'].ewm(span=50, adjust=False).mean()
-  dataframe['DEMA_2'] = dataframe['DEMA_1'].rolling(50).mean()
-  dema, dema1, dema2 = ([] for i in range(3))
-  for i in range(len(dataframe.index)):
-    dema1.append(dataframe.at[i, 'DEMA_1'])
-    dema2.append(dataframe.at[i, 'DEMA_2'])
+def RSI_Divergence(close):
+  RSI = rsi(close, 14).tolist()
+  RSI.reverse()
+  peaks = []
+  # bases = []
+  for i in range(len(RSI) - 4):
+    if RSI[i] != 'nan':
+        # RSI Peak
+        if RSI[i] < RSI[i+1] < RSI[i+2] and RSI[i+2] > RSI[i+3] > RSI[i+4]:
+            if abs(RSI[i+2] - RSI[i]) >= 2.5 and abs(RSI[i+2] - RSI[i+4])>= 2.5:
+                peaks.append(RSI[i+3])
+  return peaks
+        # RSI Base
+        # if RSI[i] > RSI[i+1] > RSI[i+2] and RSI[i+2] < RSI[i+3] < RSI[i+4]:
+        #     if abs(RSI[i+2] - RSI[i]) >= 2.5 and abs(RSI[i+2] - RSI[i+4])>= 2.5:
+        #         # print('Base Found : ', i+3)
+        #         bases.append(RSI[i+3])
+                # TODO : Need to determine what to do with this
 
-  for i in range(len(dema1)):
-    dema.append((2 * dema1[i]) - dema2[i])
-  
-  return dema
 
-def TEMA(dataframe):
-  dataframe['TEMA_1'] = dataframe['close'].ewm(span=100, adjust=False).mean()
-  dataframe['TEMA_2'] = dataframe['TEMA_1'].rolling(100).mean()
-  dataframe['TEMA_3'] = dataframe['TEMA_2'].rolling(100).mean()
-  tema, tema1, tema2, tema3 = ([] for i in range(4))
-  for i in range(len(dataframe.index)):
-    tema1.append(dataframe.at[i, 'TEMA_1'])
-    tema2.append(dataframe.at[i, 'TEMA_2'])
-    tema3.append(dataframe.at[i, 'TEMA_3'])
-  
-  for i in range(len(tema1)):
-    tema.append((3 * tema1[i]) - (3 * tema2[i]) + tema3[i])
-
-  return tema
+def TRIX(dataframe, period):
+  dataframe['trix'] = tr(dataframe['close'], period)
+  trix = []
+  for i in range(len(dataframe['trix'].index)):
+    trix.append(dataframe.at[i, 'trix'])
+  return trix
 
 def great_stochastic_crossover(dataframe, bars):
   great_stochastic_indicator(dataframe)
@@ -85,12 +84,12 @@ def great_stochastic_crossover(dataframe, bars):
 
   return signal
 
-def stochastic_crossover(dataframe, bars):
+def stochastic_crossover(dataframe):
   stochastic_indicator(dataframe, 8, 3, 5)
   signal = []
   time_values = []
   k_values, d_values = ([] for i in range(2))
-  for i in reversed(range(bars)):
+  for i in reversed(range(len(dataframe['%K'].index))):
     k_values.append(dataframe.at[i, '%K'])
     d_values.append(dataframe.at[i, '%D'])
     time_values.append(dataframe.at[i, 'time'])
@@ -134,22 +133,6 @@ def trend_detector(dataframe, bars):
 
   return status
 
-def rsi_crossover(dataframe, bars):
-  rsi_list = []
-  time_values = []
-  signal = []
-  dataframe['rsi'] = rsi(dataframe['close'], 20)
-  for i in reversed(range(bars)):
-    rsi_list.append(dataframe.at[i, 'rsi'])
-    time_values.append(dataframe.at[i, 'time'])
-  rsi_list = [x for x in rsi_list if str(x) != 'nan']
-  for i in range(len(rsi_list) - 2):
-    if floor(rsi_list[i+2]) <= 35 and floor(rsi_list[i+1]) >= 35:
-      signal.append(['buy', time_values[i]])
-    if ceil(rsi_list[i+2]) >= 65 and ceil(rsi_list[i+1]) <= 65:
-      signal.append(['sell', time_values[i]])
-  return signal
-
 def price_data_frame(symbol, time_frame, bars):
     initialization_check()
     # Retrieving previous bar positions (Open, High, Low, Close, Tick Volume)
@@ -187,7 +170,6 @@ def stochastic_indicator(dataframe, k = 8, d = 3, slow = 5):
     dataframe['%K_Fast'] = (close - low) * 100 / (high - low)
     dataframe['%K'] = dataframe['%K_Fast'].rolling(slow).mean()
     dataframe['%D'] = dataframe['%K'].rolling(d).mean()
-    return dataframe['%K'], dataframe['%D']
 
 def great_stochastic_indicator(dataframe):
     k = 50
@@ -220,10 +202,10 @@ def array_moving_average(period, array):
   return final_list
 
 def exponential_moving_average(dataframe, vfast = 50, fast=100, slow=200):
-    dataframe['Vfast_EMA'] = dataframe['close'].ewm(span=vfast, adjust=False).mean()
-    dataframe['Fast_EMA'] = dataframe['close'].ewm(span=fast, adjust=False).mean()
-    dataframe['Slow_EMA'] = dataframe['close'].ewm(span=slow, adjust=False).mean()
-    return dataframe['Fast_EMA'], dataframe['Slow_EMA']
+  dataframe['Vfast_EMA'] = dataframe['close'].ewm(span=vfast, adjust=False).mean()
+  dataframe['Fast_EMA'] = dataframe['close'].ewm(span=fast, adjust=False).mean()
+  dataframe['Slow_EMA'] = dataframe['close'].ewm(span=slow, adjust=False).mean()
+  return dataframe['Fast_EMA'], dataframe['Slow_EMA']
 
 def is_support(dataframe,i):  
   cond1 = dataframe['low'][i] < dataframe['low'][i-1]   
