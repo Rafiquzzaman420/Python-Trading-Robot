@@ -1,43 +1,48 @@
-from time import sleep
 from matplotlib import pyplot as plt
-from Functions import exponential_moving_average, price_data_frame, speaker, stochastic_crossover, time_converter
+from Functions import price_data_frame, time_converter, stochastic_crossover, rsi_crossover, speaker
 import MetaTrader5 as meta
-from ta.momentum import rsi
+import numpy as np
+from ta.utils import _sma
+from time import sleep
+import time as tm
 
 while True:
-    bars = 1000
-    dataframe = price_data_frame('GBPUSDm', meta.TIMEFRAME_M1, bars)
-    very_fast_ma, fast_ma, slow_ma, current_time = ([] for i in range(4))
-    exponential_moving_average(dataframe)
-    stoch_list = stochastic_crossover(dataframe, bars)
-    for i in reversed(range(bars)):
-        very_fast_ma.append(dataframe.at[i, 'Vfast_EMA'])
-        fast_ma.append(dataframe.at[i, 'Fast_EMA'])
-        slow_ma.append(dataframe.at[i, 'Slow_EMA'])
-        current_time.append(dataframe.at[i, 'time'])
+# Use 5 minutes timeframe to identify the proper trend
+    bars = 100
+    dataframe = price_data_frame('GBPUSD', meta.TIMEFRAME_M1, bars)
+    open = dataframe['open']
+    close = dataframe['close']
+    high = dataframe['high']
+    low = dataframe['low']
+    volume = dataframe['tick_volume']
+    time = dataframe['time']
+    rsi_list = rsi_crossover(close, time)
+    stoch_list = stochastic_crossover(high, low, close, time)
+    rsi_np_list = np.array(rsi_list)
+    stoch_np_list = np.array(stoch_list)
+    rsi_size = np.shape(rsi_np_list)
+    stoch_size = np.shape(stoch_np_list)
+    time_difference = abs(rsi_list[0][1] - stoch_list[0][1]) / 60
+    line_graph_sma = _sma(close, 14)
+    # Change time difference to 10 minutes for 5 minute charts
+    if ((tm.time()+7200) - rsi_list[0][1]) <= 120:
+        if rsi_list[0][0] == 'buy' and stoch_list[0][0] == 'buy' and time_difference <= 2:
+            
+            print('===============================================')
+            print('BUY  : ', time_converter(rsi_list[0][1]))
+            print('===============================================')
+            speaker('BUY', 10)
+        if rsi_list[0][0] == 'sell' and stoch_list[0][0] == 'sell' and time_difference <= 2:
+            print('===============================================')
+            print('SELL : ', time_converter(rsi_list[0][1]))
+            print('===============================================')
+            speaker('SELL', 10)
 
-    time_difference = int(abs(current_time[1] - stoch_list[0][1]) / 60)
+    sleep(30)    
 
-    if  very_fast_ma[0] > fast_ma[0] > slow_ma[0] and stoch_list[0][0] == 'buy' and time_difference <= 2:
-        print('==================================')
-        print('BUY   : ', time_converter(stoch_list[0][1]))
-        print('==================================')
-        speaker('UP', 10)
-    if  very_fast_ma[0] < fast_ma[0] and fast_ma[0] > slow_ma[0] and stoch_list[0][0] == 'buy' and time_difference <= 2:
-        print('==================================')
-        print('Buy   : ', time_converter(stoch_list[0][1]))
-        print('==================================')
-        speaker('Short up', 5)
-    if very_fast_ma[0] < fast_ma[0] < slow_ma[0] and stoch_list[0][0] == 'sell' and time_difference <= 2:
-        print('==================================')
-        print('SELL  : ', time_converter(stoch_list[0][1]))
-        print('==================================')
-        speaker('DOWN', 10)
-    if very_fast_ma[0] > fast_ma[0] and fast_ma[0] < slow_ma[0] and stoch_list[0][0] == 'sell' and time_difference <= 2:
-        print('==================================')
-        print('Sell  : ', time_converter(stoch_list[0][1]))
-        print('==================================')
-        speaker('Short down', 5)
-        
-
-    sleep(30)
+'''
+TODO:
+1. Create an MACD Line crossover function (Though it works without MACD)
+2. Create a Line chart crossover function using 14 simple moving average
+3. Combine MACD and Line chart system with RSI and Stochastic (MACD: Optional)
+'''

@@ -4,11 +4,14 @@ import pandas as pd
 from mplfinance.original_flavor import candlestick_ohlc
 import numpy as np
 import matplotlib.pyplot as plt
-from pandas_ta import rsi
+from pandas_ta import rsi, stoch
 from ta.trend import trix as tr
+from ta.trend import macd, macd_signal
+from ta.utils import _sma
 from datetime import datetime
 import win32com.client
 import numpy as np
+import time as current_unix_time
 
 def speaker(message, repeat):
   speaker = win32com.client.Dispatch("SAPI.SpVoice")
@@ -19,6 +22,79 @@ def initialization_check():
     if not meta.initialize():
         print('Initialization failed.\nError code : ', meta.last_error())
         quit()
+
+def macd_crossover(close, time):
+  macd_line = macd(close, 8, 5).tolist()
+  macd_signal_line = macd_signal(close, 8, 5, 3).tolist()
+  time = time.tolist()
+  macd_line.reverse()
+  macd_signal_line.reverse()
+  time.reverse()
+  signal = []
+  for i in range(len(macd_line) - 2):
+    if macd_line[i+2] < macd_signal_line[i+2] and macd_line[i+1] > macd_signal_line[i+1]:
+      signal.append(['buy', time[i]])
+    if macd_line[i+2] > macd_signal_line[i+2] and macd_line[i+1] < macd_signal_line[i+1]:
+      signal.append(['sell', time[i]])
+  return signal
+
+def trend_detect(close, time):
+  rsi_line = rsi(close, 14)
+  rsi_ma_line = _sma(rsi_line, 14).tolist()
+  rsi_line = rsi_line.tolist()
+  time = time.tolist()
+  rsi_line.reverse()
+  rsi_ma_line.reverse()
+  time.reverse()
+  status = []
+  for i in range(len(rsi_ma_line)-2):
+    if rsi_ma_line[i+1] < 50 and rsi_ma_line[i+2] < 50:
+      status.append(['down_trend', time[i]])
+    if rsi_ma_line[i+1] > 50 and rsi_ma_line[i+2] > 50:
+      status.append(['up_trend', time[i]])
+    
+  return status
+
+def macd_signal_detect(close, time):
+  macd_line = macd(close, 8, 5).tolist()
+  macd_signal_line = macd_signal(close, 8, 5, 3).tolist()
+  time = time.tolist()
+  time.reverse()
+  macd_line.reverse()
+  macd_signal_line.reverse()
+  status = []
+  for i in range(len(macd_signal_line)-2):
+    if macd_signal_line[i+2] < 0 and macd_signal_line[i+1] > 0:
+      status.append(['buy', time[i]])
+    if macd_signal_line[i+2] > 0 and macd_signal_line[i+1] < 0:
+      status.append(['sell', time[i]])
+  return status
+
+def printer_function(trend_detection, macd_detect, print_message, speak_message):
+  time_difference = abs(((current_unix_time.time() - (macd_detect[0][1]))) / 60)
+  if trend_detection[0][0] == 'up_trend' and macd_detect[0][0] == 'buy' and time_difference <= 2:
+        print(f'{print_message} --> UP  , TIME: {time_converter(macd_detect[0][1])}')
+        speaker(f'{speak_message} UP', 10)
+  if trend_detection[0][0] == 'down_trend' and macd_detect[0][0] == 'sell' and time_difference <= 2:
+        print(f'{print_message} --> DOWN, TIME: {time_converter(macd_detect[0][1])}')
+        speaker(f'{speak_message} DOWN', 10)
+
+def line_graph_crossover(close, time):
+  line_graph_sma = _sma(close, 14).tolist()
+  line_graph = close.tolist()
+  time = time.tolist()
+  line_graph.reverse()
+  time.reverse()
+  line_graph_sma.reverse()
+  signal = []
+  for i in range(len(line_graph_sma)-2):
+    if line_graph[i+2] > line_graph_sma[i+2] and line_graph[i+1] < line_graph_sma[i+1]:
+      signal.append(['sell', time[i]])
+    if line_graph[i+2] < line_graph_sma[i+2] and line_graph[i+1] > line_graph_sma[i+1]:
+      signal.append(['buy', time[i]])
+    
+  return signal  
+
 
 def time_detector(dataframe, bars):
     std_time = 1661968800 + 6*60*60
@@ -40,98 +116,70 @@ def time_converter(unix_time):
   normal_time = datetime.utcfromtimestamp(unix_time).strftime('%Y-%m-%d %H:%M:%S')
   return normal_time  
 
-def RSI_Divergence(close):
+def rsi_peaks(close, time):
   RSI = rsi(close, 14).tolist()
+  time = time.tolist()
   RSI.reverse()
+  time.reverse()
   peaks = []
-  # bases = []
   for i in range(len(RSI) - 4):
     if RSI[i] != 'nan':
         # RSI Peak
-        if RSI[i] < RSI[i+1] < RSI[i+2] and RSI[i+2] > RSI[i+3] > RSI[i+4]:
-            if abs(RSI[i+2] - RSI[i]) >= 2.5 and abs(RSI[i+2] - RSI[i+4])>= 2.5:
-                peaks.append(RSI[i+3])
+        if RSI[i] < RSI[i+1] and RSI[i+1] > RSI[i+2]:
+            # if abs(RSI[i+2] - RSI[i]) >= 2.5 and abs(RSI[i+2] - RSI[i+4])>= 2.5:
+                peaks.append([RSI[i+1], time[i+1]])
+
   return peaks
-        # RSI Base
-        # if RSI[i] > RSI[i+1] > RSI[i+2] and RSI[i+2] < RSI[i+3] < RSI[i+4]:
-        #     if abs(RSI[i+2] - RSI[i]) >= 2.5 and abs(RSI[i+2] - RSI[i+4])>= 2.5:
-        #         # print('Base Found : ', i+3)
-        #         bases.append(RSI[i+3])
-                # TODO : Need to determine what to do with this
 
+def rsi_bottoms(close, time):
+  RSI = rsi(close, 14).tolist()
+  time = time.tolist()
+  RSI.reverse()
+  time.reverse()
+  peaks = []
+  for i in range(len(RSI) - 4):
+    if RSI[i] != 'nan':
+        # RSI Peak
+        if RSI[i] > RSI[i+1] and RSI[i+1] < RSI[i+2]:
+            # if abs(RSI[i+2] - RSI[i]) >= 2.5 and abs(RSI[i+2] - RSI[i+4])>= 2.5:
+                peaks.append([RSI[i+1], time[i+1]])
 
-def TRIX(dataframe, period):
-  dataframe['trix'] = tr(dataframe['close'], period)
-  trix = []
-  for i in range(len(dataframe['trix'].index)):
-    trix.append(dataframe.at[i, 'trix'])
-  return trix
+  return peaks
 
-def great_stochastic_crossover(dataframe, bars):
-  great_stochastic_indicator(dataframe)
-  signal = []
-  time_values = []
-  k_values, d_values = ([] for i in range(2))
-  for i in reversed(range(bars)):
-    k_values.append(dataframe.at[i, 'k_great'])
-    d_values.append(dataframe.at[i, 'd_great'])
-    time_values.append(dataframe.at[i, 'time'])
-  for i in range(len(k_values)-2):
-    if k_values[i+2] >= d_values[i+2] and k_values[i+1] <= d_values[i+1] and k_values[i+1] >= 79:
-      signal.append(['sell', time_values[i]])
-    if k_values[i+2] <= d_values[i+2] and k_values[i+1] >= d_values[i+1] and k_values[i+1] <= 21:
+def rsi_crossover(close, time):
+  rsi_list = rsi(close, 14)
+  signal, time_values = ([] for i in range(2))
+  time_values = time.tolist()
+  time_values.reverse()
+  rsi_ma_list = _sma(rsi_list, 14).tolist()
+  rsi_list = rsi_list.tolist()
+  rsi_list.reverse()
+  rsi_ma_list.reverse()
+  for i in range(len(rsi_ma_list) - 2):
+    if rsi_list[i+2] < rsi_ma_list[i+2] and rsi_list[i+1] > rsi_ma_list[i+1]:
       signal.append(['buy', time_values[i]])
-
+    if rsi_list[i+2] > rsi_ma_list[i+2] and rsi_list[i+1] < rsi_ma_list[i+1]:
+      signal.append(['sell', time_values[i]])
   return signal
 
-def stochastic_crossover(dataframe):
-  stochastic_indicator(dataframe, 8, 3, 5)
-  signal = []
-  time_values = []
-  k_values, d_values = ([] for i in range(2))
-  for i in reversed(range(len(dataframe['%K'].index))):
-    k_values.append(dataframe.at[i, '%K'])
-    d_values.append(dataframe.at[i, '%D'])
-    time_values.append(dataframe.at[i, 'time'])
+def stochastic_crossover(high, low, close, time):
+  stoch_list = stoch(high, low, close, 8, 3, 5)
+  k_values, d_values, time_values, signal = ([] for i in range(4))
+  k_values = stoch_list['STOCHk_8_3_5'].tolist()
+  d_values = stoch_list['STOCHd_8_3_5'].tolist()
+  time_values = time.tolist()
+  k_values.reverse()
+  d_values.reverse()
+  time_values.reverse()
   for i in range(len(k_values)-2):
-    if k_values[i+2] >= d_values[i+2] and k_values[i+1] <= d_values[i+1] and k_values[i+1] >= 75:
+    if k_values[i+2] >= d_values[i+2] and k_values[i+1] <= d_values[i+1]:
       signal.append(['sell', time_values[i]])
-    if k_values[i+2] <= d_values[i+2] and k_values[i+1] >= d_values[i+1] and k_values[i+1] <= 25:
+      # signal.append('SELL')
+    if k_values[i+2] <= d_values[i+2] and k_values[i+1] >= d_values[i+1]:
       signal.append(['buy', time_values[i]])
+      # signal.append('BUY')
 
   return signal
-
-def trend_detector(dataframe, bars):
-  stoch_signal = stochastic_crossover(dataframe, bars)
-  signal, time_values, k_values, d_values, status = ([] for i in range(5))
-  for i in reversed(range(bars)):
-    k_values.append(dataframe.at[i, '%K'])
-    d_values.append(dataframe.at[i, '%D'])
-    time_values.append(dataframe.at[i, 'time'])
-  for i in range(len(k_values)-2):
-    # Market continuation signal
-    # TODO: SOME PROBLEM HERE
-    if (k_values[i+1] < 75 and k_values[i+1] > 25)\
-       and k_values[i+2] >= d_values[i+2] and k_values[i+1] <= d_values[i+1]:
-      signal.append(['continue', time_values[i]]) 
-    if (k_values[i+1] > 25 and k_values[i+1] < 75)\
-       and k_values[i+2] <= d_values[i+2] and k_values[i+1] >= d_values[i+1]:
-      signal.append(['continue', time_values[i]])
-
-  np_array = np.array(stoch_signal)
-  size = np.shape(np_array)
-  for i in range(size[0]):
-    time_diff = (signal[i][1] - stoch_signal[i][1]) / 60
-    if signal[i][0] == 'continue' and stoch_signal[i][0] == 'buy':
-      if i < size[0]-1:
-        if stoch_signal[i+1][0] == 'sell':
-          status.append(['DOWN_TREND ', stoch_signal[i][1]])
-    if signal[i][0] == 'continue' and stoch_signal[i][0] == 'sell':
-      if i < size[0]-1:
-        if stoch_signal[i+1][0] == 'buy':
-          status.append(['UP_TREND   ', stoch_signal[i][1]])
-
-  return status
 
 def price_data_frame(symbol, time_frame, bars):
     initialization_check()
@@ -150,19 +198,7 @@ def time_zone_sync(bars, data_frame):
     time_list.append(data_frame.at[info, 'time'] + (6*60*60))
   return time_list
 
-def bulls_and_bears_power(dataframe, bars):
-  exponential_moving_average(dataframe, 100)
-  bulls_power, bears_power, high, low, fast_ema = ([] for i in range(5))
-  for i in reversed(range(bars)):
-    high.append((dataframe.at[i, 'high']))
-    low.append((dataframe.at[i, 'low']))
-    fast_ema.append(dataframe.at[i, 'Fast_EMA'])
-  for i in range(len(high) - 1):
-    bulls_power.append(high[i] - fast_ema[i])
-    bears_power.append(low[i] - fast_ema[i])
-
-  return bulls_power, bears_power
-
+# Below stochastic indicator should be used with 20 EMA
 def stochastic_indicator(dataframe, k = 8, d = 3, slow = 5):
     close = dataframe['close']
     low = dataframe['low'].rolling(k).min()
@@ -171,17 +207,19 @@ def stochastic_indicator(dataframe, k = 8, d = 3, slow = 5):
     dataframe['%K'] = dataframe['%K_Fast'].rolling(slow).mean()
     dataframe['%D'] = dataframe['%K'].rolling(d).mean()
 
-def great_stochastic_indicator(dataframe):
-    k = 50
-    d = 35
-    slow = 5
-    close = dataframe['close']
-    low = dataframe['low'].rolling(k).min()
-    high = dataframe['high'].rolling(k).max()
-    dataframe['great_k'] = (close - low) * 100 / (high - low)
-    dataframe['k_great'] = dataframe['great_k'].rolling(slow).mean()
-    dataframe['d_great'] = dataframe['k_great'].rolling(d).mean()
-    return dataframe['k_great'], dataframe['d_great']
+def list_ema(data_list, period):
+  i = 0
+  ema_of_list = []
+  while i < len(data_list) - period + 1:
+    values = data_list[i : i + period]
+
+    average = sum(values) / period
+    ema_of_list.append(average)
+    i += 1
+  for i in range(period):
+    ema_of_list.insert(i, 0)
+
+  return ema_of_list
 
 def array_moving_average(period, array):
   # Convert array of integers to pandas series
@@ -200,12 +238,6 @@ def array_moving_average(period, array):
     final_list.insert(i, 0)
 
   return final_list
-
-def exponential_moving_average(dataframe, vfast = 50, fast=100, slow=200):
-  dataframe['Vfast_EMA'] = dataframe['close'].ewm(span=vfast, adjust=False).mean()
-  dataframe['Fast_EMA'] = dataframe['close'].ewm(span=fast, adjust=False).mean()
-  dataframe['Slow_EMA'] = dataframe['close'].ewm(span=slow, adjust=False).mean()
-  return dataframe['Fast_EMA'], dataframe['Slow_EMA']
 
 def is_support(dataframe,i):  
   cond1 = dataframe['low'][i] < dataframe['low'][i-1]   
@@ -279,77 +311,3 @@ def horizontal_line_position(bars, hline_output, data_frame, hline_position):
         return hline_position, above, bar_position
     else:
         return hline_position, below, bar_position
-
-########################################
-#
-# Laguerre RSI
-#
-def ehlers_RSI(dataframe, gamma=0.75, smooth=1, debug=bool):
-    """
-    Laguerra RSI
-    How to trade lrsi:  (TL, DR) buy on the flat 0, sell on the drop from top,
-    not when touch the top
-    """
-
-    df = dataframe
-    g = gamma
-    smooth = smooth
-    debug = debug
-    if debug:
-        from pandas import set_option
-        set_option('display.max_rows', 2000)
-        set_option('display.max_columns', 8)
-
-    """
-    Vectorised pandas or numpy calculations are not used
-    in Laguerre as L0 is self referencing.
-    Therefore we use an intertuples loop as next best option.
-    """
-    lrsi_l = []
-    L0, L1, L2, L3 = 0.0, 0.0, 0.0, 0.0
-    for row in df.itertuples(index=True, name='lrsi'):
-        """ Original Pine Logic  Block1
-        p = close
-        L0 = ((1 - g)*p)+(g*nz(L0[1]))
-        L1 = (-g*L0)+nz(L0[1])+(g*nz(L1[1]))
-        L2 = (-g*L1)+nz(L1[1])+(g*nz(L2[1]))
-        L3 = (-g*L2)+nz(L2[1])+(g*nz(L3[1]))
-        """
-        # Feed back loop
-        L0_1, L1_1, L2_1, L3_1 = L0, L1, L2, L3
-
-        L0 = (1 - g) * row.close + g * L0_1
-        L1 = -g * L0 + L0_1 + g * L1_1
-        L2 = -g * L1 + L1_1 + g * L2_1
-        L3 = -g * L2 + L2_1 + g * L3_1
-
-        """ Original Pinescript Block 2
-        cu=(L0 > L1? L0 - L1: 0) + (L1 > L2? L1 - L2: 0) + (L2 > L3? L2 - L3: 0)
-        cd=(L0 < L1? L1 - L0: 0) + (L1 < L2? L2 - L1: 0) + (L2 < L3? L3 - L2: 0)
-        """
-        cu = 0.0
-        cd = 0.0
-        if (L0 >= L1):
-            cu = L0 - L1
-        else:
-            cd = L1 - L0
-
-        if (L1 >= L2):
-            cu = cu + L1 - L2
-        else:
-            cd = cd + L2 - L1
-
-        if (L2 >= L3):
-            cu = cu + L2 - L3
-        else:
-            cd = cd + L3 - L2
-
-        """Original Pinescript  Block 3
-        lrsi=ema((cu+cd==0? -1: cu+cd)==-1? 0: (cu/(cu+cd==0? -1: cu+cd)), smooth)
-        """
-        if (cu + cd) != 0:
-            lrsi_l.append(cu / (cu + cd))
-        else:
-            lrsi_l.append(0)
-
-    return lrsi_l
