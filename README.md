@@ -1,6 +1,6 @@
-# Project Name
+# Python-Trading-Robot
 
-A brief description of your project and what it does.
+A python based algorithmic trading robot for practicing libraries like numpy, pandas, matplotlib along with other technical analysis libraries for trading in MetaTrader5.
 
 ## Table of Contents
 
@@ -15,16 +15,16 @@ A brief description of your project and what it does.
 
 1. Clone the repository:
     ```bash
-    git clone https://github.com/yourusername/your-repo-name.git
+    git clone https://github.com/Rafiquzzaman420/Python-Trading-Robot
     ```
 2. Navigate to the project directory:
     ```bash
-    cd your-repo-name
+    cd Python-Trading-Robot
     ```
 3. (Optional) Create and activate a virtual environment:
     ```bash
-    python -m venv env
-    source env/bin/activate  # On Windows use `env\Scripts\activate`
+    python -m venv venv
+    source venv/bin/activate  # On Windows use `venv\Scripts\activate`
     ```
 4. Install the dependencies:
     ```bash
@@ -33,21 +33,18 @@ A brief description of your project and what it does.
 
 ## Usage
 
-Explain how to run the project or use the application.
+You must have MetaTrader5 installed and logged in on your machine.
 
-1. Run the main script:
+1. Run the scripts individually:
     ```bash
-    python main.py
+    python robot.py
     ```
 
-2. Describe any other commands or options the user can utilize.
+2. You can run other python files individually by using the same command above.
 
 ## Features
 
-- Feature 1
-- Feature 2
-- Feature 3
-- ...
+- Uses libraries like **Pandas**, **Numpy**, **Matplotlib** to calculate market data, plot them on chart, generate decisions based on the given algorithms.
 
 ## Contributing
 
@@ -62,10 +59,10 @@ Contributions are welcome! Please follow these steps to contribute:
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License.
 
 ## Contact
 
-Your Name - [your.email@example.com](mailto:your.email@example.com)
+Name - [Rafiquzzaman](mailto:rafiquzzamanrafi100@gmail.com)
 
-Project Link: [https://github.com/yourusername/your-repo-name](https://github.com/yourusername/your-repo-name)
+Project Link: [https://github.com/Rafiquzzaman420/Python-Trading-Robot](https://github.com/Rafiquzzaman420/Python-Trading-Robot)
