@@ -1,8 +1,8 @@
 import MetaTrader5 as meta
 import pandas as pd
-from Functions import initialization_check as INIT
-from CandleStick import candlestickpatterncode as cs
-from Functions import StockPriceDataFrame
+from functions import initialization_check as INIT
+from candle_stick import candlestickpatterncode as cs
+from functions import StockPriceDataFrame
 
 total_bars = 100
 

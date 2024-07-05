@@ -1,5 +1,5 @@
 from matplotlib import pyplot as plt
-from Functions import price_data_frame, time_converter, stochastic_crossover, rsi_crossover, speaker
+from functions import price_data_frame, time_converter, stochastic_crossover, rsi_crossover, speaker
 import MetaTrader5 as meta
 import numpy as np
 from ta.utils import _sma

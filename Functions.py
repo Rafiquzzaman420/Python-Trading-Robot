@@ -13,9 +13,14 @@ import win32com.client
 import numpy as np
 import time as current_unix_time
 
+
+
 def speaker(message, repeat):
+  """
+  Gives voice output of the given 'message'
+  """
   speaker = win32com.client.Dispatch("SAPI.SpVoice")
-  for i in range(repeat):
+  for _ in range(repeat):
     speaker.Speak(message)
 
 def initialization_check():
@@ -23,7 +28,11 @@ def initialization_check():
         print('Initialization failed.\nError code : ', meta.last_error())
         quit()
 
+
 def macd_crossover(close, time):
+  """
+  Checks if MACD has crossed over or not
+  """
   macd_line = macd(close, 8, 5).tolist()
   macd_signal_line = macd_signal(close, 8, 5, 3).tolist()
   time = time.tolist()
@@ -39,6 +48,9 @@ def macd_crossover(close, time):
   return signal
 
 def trend_detect(close, time):
+  """
+  Detects market trend by using RSI
+  """
   rsi_line = rsi(close, 14)
   rsi_ma_line = _sma(rsi_line, 14).tolist()
   rsi_line = rsi_line.tolist()
@@ -56,6 +68,9 @@ def trend_detect(close, time):
   return status
 
 def macd_signal_detect(close, time):
+  """
+  Signals buy or sell based on MACD
+  """
   macd_line = macd(close, 8, 5).tolist()
   macd_signal_line = macd_signal(close, 8, 5, 3).tolist()
   time = time.tolist()
@@ -71,6 +86,9 @@ def macd_signal_detect(close, time):
   return status
 
 def printer_function(trend_detection, macd_detect, print_message, speak_message):
+  """
+  Prints output in console
+  """
   time_difference = abs(((current_unix_time.time() - (macd_detect[0][1]))) / 60)
   if trend_detection[0][0] == 'up_trend' and macd_detect[0][0] == 'buy' and time_difference <= 2:
         print(f'{print_message} --> UP  , TIME: {time_converter(macd_detect[0][1])}')
@@ -80,6 +98,9 @@ def printer_function(trend_detection, macd_detect, print_message, speak_message)
         speaker(f'{speak_message} DOWN', 10)
 
 def line_graph_crossover(close, time):
+  """
+   Checks if line graph has crossed over with moving average or not
+  """
   line_graph_sma = _sma(close, 14).tolist()
   line_graph = close.tolist()
   time = time.tolist()
@@ -97,6 +118,10 @@ def line_graph_crossover(close, time):
 
 
 def time_detector(dataframe, bars):
+    """
+    !Naive approach!
+    Detects time difference between platform time and country time
+    """
     std_time = 1661968800 + 6*60*60
     current_time = []
     for i in reversed(range(bars)):
@@ -113,10 +138,16 @@ def time_detector(dataframe, bars):
       return difference
 
 def time_converter(unix_time):
+  """
+  Converts time
+  """
   normal_time = datetime.utcfromtimestamp(unix_time).strftime('%Y-%m-%d %H:%M:%S')
   return normal_time  
 
 def rsi_peaks(close, time):
+  """
+  Calculates RSI peaks
+  """
   RSI = rsi(close, 14).tolist()
   time = time.tolist()
   RSI.reverse()
@@ -126,12 +157,14 @@ def rsi_peaks(close, time):
     if RSI[i] != 'nan':
         # RSI Peak
         if RSI[i] < RSI[i+1] and RSI[i+1] > RSI[i+2]:
-            # if abs(RSI[i+2] - RSI[i]) >= 2.5 and abs(RSI[i+2] - RSI[i+4])>= 2.5:
                 peaks.append([RSI[i+1], time[i+1]])
 
   return peaks
 
 def rsi_bottoms(close, time):
+  """
+  Calculates RSI bottoms
+  """
   RSI = rsi(close, 14).tolist()
   time = time.tolist()
   RSI.reverse()
@@ -147,6 +180,9 @@ def rsi_bottoms(close, time):
   return peaks
 
 def rsi_crossover(close, time):
+  """
+  Calculates RSI crossover given close value and time
+  """
   rsi_list = rsi(close, 14)
   signal, time_values = ([] for i in range(2))
   time_values = time.tolist()
@@ -163,6 +199,9 @@ def rsi_crossover(close, time):
   return signal
 
 def stochastic_crossover(high, low, close, time):
+  """
+  Calculates stochastic crossover given high, low, close and time
+  """
   stoch_list = stoch(high, low, close, 8, 3, 5)
   k_values, d_values, time_values, signal = ([] for i in range(4))
   k_values = stoch_list['STOCHk_8_3_5'].tolist()
@@ -193,6 +232,9 @@ def price_data_frame(symbol, time_frame, bars):
     return data_frame
 
 def time_zone_sync(bars, data_frame):
+  """
+  Synchronizes timezone with chart
+  """
   time_list = []
   for info in reversed(range(bars)):
     time_list.append(data_frame.at[info, 'time'] + (6*60*60))
@@ -200,6 +242,12 @@ def time_zone_sync(bars, data_frame):
 
 # Below stochastic indicator should be used with 20 EMA
 def stochastic_indicator(dataframe, k = 8, d = 3, slow = 5):
+    """
+    Stochastic indicator value calculator
+    k = fast line
+    slow = slow line
+    d = deviation
+    """
     close = dataframe['close']
     low = dataframe['low'].rolling(k).min()
     high = dataframe['high'].rolling(k).max()
@@ -222,6 +270,9 @@ def list_ema(data_list, period):
   return ema_of_list
 
 def array_moving_average(period, array):
+  """
+  Calculates Moving Average
+  """
   # Convert array of integers to pandas series
   numbers_series = pd.Series(array)
   # Get the window of series
@@ -239,7 +290,10 @@ def array_moving_average(period, array):
 
   return final_list
 
-def is_support(dataframe,i):  
+def is_support(dataframe,i):
+  """
+  Finds support line
+  """
   cond1 = dataframe['low'][i] < dataframe['low'][i-1]   
   cond2 = dataframe['low'][i] < dataframe['low'][i+1]   
   cond3 = dataframe['low'][i+1] < dataframe['low'][i+2]   
@@ -247,7 +301,10 @@ def is_support(dataframe,i):
   return (cond1 and cond2 and cond3 and cond4) 
 
 # determine bearish fractal
-def is_resistance(dataframe,i):  
+def is_resistance(dataframe,i): 
+  """
+  Finds resistance line
+  """ 
   cond1 = dataframe['high'][i] > dataframe['high'][i-1]   
   cond2 = dataframe['high'][i] > dataframe['high'][i+1]   
   cond3 = dataframe['high'][i+1] > dataframe['high'][i+2]   
@@ -262,6 +319,9 @@ def is_far_from_level(value, levels, dataframe, tuner):
 
 # Store Horizontal level information
 def store_levels(data_frame, tuner):
+  """
+  Stores all the values of support and resistance line
+  """
   level = []
   # Use this function to store level data
   for i in range(2, data_frame.shape[0] - 2):  
@@ -277,6 +337,9 @@ def store_levels(data_frame, tuner):
 
 # For human visualization
 def plotter(levels, dataframe):    
+  """
+  Plots supports or resistance lines
+  """
   fig, ax = plt.subplots(figsize=(150, 60))
   candlestick_ohlc(ax,dataframe.values,width=30, colorup='green', 
     colordown='red', alpha=1)
@@ -286,6 +349,9 @@ def plotter(levels, dataframe):
   fig.show()
 
 def horizontal_line_values(hline_value_list):
+  """
+  Calculates horizontal line values on the chart
+  """
   hline_output_values = []
 # Return values of levels in list format
   for i in range(len(hline_value_list)):
@@ -295,6 +361,9 @@ def horizontal_line_values(hline_value_list):
   return hline_output_values
 
 def horizontal_line_position(bars, hline_output, data_frame, hline_position):
+    """
+    Calculates horizontal line position on the chart
+    """
     bar_position = data_frame.at[bars - 1, 'close']
     differnece = []
     above, below = 1, -1

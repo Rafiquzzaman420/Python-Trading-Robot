@@ -1,8 +1,4 @@
-"""
-This program calculates the difference between stochastic line values and adds that into dataframe
-"""
-# It is a very sad things to say but this program really doesn't work the way I thought it might :(
-# Waste of most valuable thing in the world and that it "TIME"
+# Program to add the stochastic oscillators value differences into dataframe
 import matplotlib.pyplot as plt
 import pandas as pd
 import MetaTrader5 as meta

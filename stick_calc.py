@@ -1,5 +1,5 @@
 from matplotlib import pyplot as plt
-from Functions import price_data_frame, time_converter
+from functions import price_data_frame, time_converter
 import MetaTrader5 as meta
 from ta.utils import _sma
 import numpy as np

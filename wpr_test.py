@@ -1,5 +1,5 @@
 from matplotlib import pyplot as plt
-from Functions import price_data_frame, time_converter
+from functions import price_data_frame, time_converter
 import MetaTrader5 as meta
 from pandas_ta import stoch, willr
 from ta.trend import macd, macd_signal

@@ -1,5 +1,5 @@
 from matplotlib import pyplot as plt
-from Functions import price_data_frame, time_converter, stochastic_crossover, rsi_crossover
+from functions import price_data_frame, time_converter, stochastic_crossover, rsi_crossover
 import MetaTrader5 as meta
 import numpy as np
 # Use 5 minutes timeframe to identify the proper trend

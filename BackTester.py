@@ -1,5 +1,7 @@
+# Individual program for backtesting a algorithmic trading method
+
 from matplotlib import pyplot as plt
-from Functions import price_data_frame, time_converter, line_graph_crossover
+from functions import price_data_frame, time_converter, line_graph_crossover
 import MetaTrader5 as meta
 import numpy as np
 

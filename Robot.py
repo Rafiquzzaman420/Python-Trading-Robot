@@ -1,5 +1,5 @@
 
-from Functions import price_data_frame, time_converter, \
+from functions import price_data_frame, time_converter, \
     trend_detect, macd_signal_detect, speaker, printer_function
 import MetaTrader5 as meta
 from time import sleep
